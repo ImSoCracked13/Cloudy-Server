@@ -3,7 +3,6 @@ import { FileController, fileControllerInstance } from '../controllers/fileContr
 
 /**
  * Controller Provider for Dependency Injection
- * This class manages controller instances
  */
 export class ControllerProvider {
   private static instance: ControllerProvider;

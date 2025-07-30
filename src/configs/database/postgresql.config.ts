@@ -3,7 +3,6 @@ import { pgTable, uuid, varchar, timestamp, boolean, integer, jsonb } from 'driz
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { eq, and, or, inArray, ilike, gt, isNull, sql } from 'drizzle-orm';
 import { Pool } from 'pg';
-import 'dotenv/config';
 
 // Export all database-related types and functions
 export { pgTable, uuid, varchar, timestamp, boolean, integer, jsonb };

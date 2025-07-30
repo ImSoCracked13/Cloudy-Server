@@ -3,7 +3,6 @@ import { fileRoute } from '../routes/fileRoute';
 
 /**
  * Route Provider for Dependency Injection
- * This class manages all route configurations
  */
 export class RouteProvider {
   private static instance: RouteProvider;

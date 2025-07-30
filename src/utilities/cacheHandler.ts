@@ -4,10 +4,8 @@ import { utilityProvider } from '@/injections/utilityProvider';
 // Get Redis client from configProvider
 const redis = configProvider.getRedisClient();
 
-// Flag to track Redis availability
 let isRedisAvailable = true;
 
-// Check if Redis is available
 async function checkRedisAvailability(): Promise<boolean> {
   if (!redis) return false;
   
@@ -146,7 +144,6 @@ export async function addToSortedSet(key: string, score: number, member: string)
     // Upstash Redis uses a different syntax for zadd
     await redis.zadd(key, { score, member: memberStr });
   } catch (error) {
-    // Just silently fail for sorted sets to avoid console spam
     if (process.env.DEBUG_REDIS === 'true') {
       // Only log detailed error if available
       if (error && Object.keys(error).length > 0) {
@@ -194,7 +191,7 @@ export async function setHashField(key: string, field: string, value: string): P
   }
 }
 
-// Export all functions as a single object for easier importing
+
 export const cacheHandler = {
   getFromCache,
   setInCache,

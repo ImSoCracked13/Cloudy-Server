@@ -1,4 +1,4 @@
-import * as safeBypasser from '../middlewares/safeBypasser';
+import * as cors from '../middlewares/safeBypasser';
 import * as cookie from '../middlewares/infoReminder';
 
 /**
@@ -20,10 +20,10 @@ export class MiddlewareProvider {
   }
 
   /**
-   * Get safe bypasser middleware (CORS, Helmet)
+   * Get CORS middleware
    */
-  public getSafeBypasser(): typeof safeBypasser {
-    return safeBypasser;
+  public getSafeBypasser(): typeof cors {
+    return cors;
   }
 
   /**

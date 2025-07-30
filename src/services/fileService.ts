@@ -546,11 +546,20 @@ export class FileService {
       } 
       
       // Update file record in database
-    const fileRepository = repositoryProvider.getFileRepository();
+      const fileRepository = repositoryProvider.getFileRepository();
+
+      // Stop the moving file if there is a same name file in Bin
+      const existingFileInBin = await fileRepository.findByNameAndPath(file.ownerId, file.objectName, file.objectPath, 'Bin');
+      if (existingFileInBin) {
+        this.logger.error(`File "${file.objectName}" with same name already exists in Bin, cannot move to Bin`);
+        throw new Error(`File "${file.objectName}" with same name already exists in Bin, cannot move to Bin`);
+      }
+
       const updatedFile = await fileRepository.updateFile(fileId, {
         location: 'Bin',
         updatedAt: new Date()
       });
+
       
       if (!updatedFile) {
         throw new Error('Failed to update file record in database');
@@ -635,6 +644,13 @@ export class FileService {
         
         // Update file record in database
         const fileRepository = repositoryProvider.getFileRepository();
+
+        // Stop the restoring file if there is a same name file in Drive
+        const existingFileInDrive = await fileRepository.findByNameAndPath(file.ownerId, file.objectName, file.objectPath, 'Drive');
+        if (existingFileInDrive) {
+          this.logger.error(`File "${file.objectName}" with same name already exists in Drive, cannot restore from Bin`);
+          throw new Error(`File "${file.objectName}" with same name already exists in Drive, cannot restore from Bin`);
+        }
         const updatedFile = await fileRepository.updateFile(fileId, {
           location: targetLocation,
           updatedAt: new Date()

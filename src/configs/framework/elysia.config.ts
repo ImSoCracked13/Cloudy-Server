@@ -5,7 +5,6 @@ import { cookie } from '@elysiajs/cookie';
 
 /**
  * Elysia framework configuration
- * Centralizes all Elysia-related packages and configurations
  */
 export class ElysiaConfig {
   /**
@@ -62,7 +61,7 @@ export class ElysiaConfig {
         port: process.env.PORT || 3000,
         hostname: process.env.HOST || 'localhost',
         idleTimeout: 300000, // 5 minutes (keep-alive)
-        
+
         // Fly.io-specific: Disable proxy buffering
         headers: {
           'X-Accel-Buffering': 'no' // Critical for large uploads, for Fly.io if paid
@@ -97,12 +96,12 @@ static applyCookie(app: any, cookieConfig: any = {}): any {
   const isProduction = process.env.NODE_ENV === 'production';
   const domain = isProduction ? 'https://cloudy-client-rho.vercel.app' : undefined;
 
-  // This feature is currently experimental in Elysia, and not eligible for production use
+  // This feature is currently experimental in Elysia, and not eligible for production in use
   const defaultCookieConfig = {
     name: 'jwt',                // Enable JWT cookies
     httpOnly: isProduction,     // Prevent JavaScript access (XSS safe)
     secure: isProduction,       // Use HTTPS-only in production
-    sameSite: 'None',           // isProduction ? 'Strict' : 'Lax',  // Use 'Lax' in development
+    sameSite: 'None',           // Use 'Lax' in development
     maxAge: 60 * 60,            // Default expiry: 1 hour
     path: '/',                  // Apply to entire domain
     domain,                     // Set domain in production

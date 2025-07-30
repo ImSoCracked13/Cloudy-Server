@@ -1,15 +1,15 @@
 import * as cacheHandler from '../utilities/cacheHandler';
 import * as fileTracker from '../utilities/fileTracker';
 import * as passwordHasher from '../utilities/passwordHasher';
-import { emailHandler } from '../utilities/emailHandler';
 import * as validator from '../utilities/validator';
+import * as encoder from '../utilities/encoder';
 import Logger from '../utilities/logger';
 import { storageHelper } from '../utilities/storageHelper';
-import * as encoder from '../utilities/encoder';
+import { emailHandler } from '../utilities/emailHandler';
+
 
 /**
  * Utility Provider for Dependency Injection
- * This class manages utility functions and dependencies
  */
 export class UtilityProvider {
   private static instance: UtilityProvider;

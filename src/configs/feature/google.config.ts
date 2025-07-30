@@ -63,65 +63,8 @@ export async function verifyGoogleToken(token: string): Promise<GoogleUser | nul
   }
 }
 
-/**
- * Generate a Google OAuth URL for authentication
- * @returns The Google OAuth URL
- */
-export async function getGoogleAuthUrl(): Promise<string> {
-  const scopes = [
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/userinfo.email'
-  ];
-
-  return googleClient.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-    prompt: 'consent'
-  });
-}
-
-/**
- * Exchange an authorization code for Google tokens
- */
-export async function getGoogleTokens(code: string) {
-  try {
-    const { tokens } = await googleClient.getToken(code);
-    return tokens;
-  } catch (error) {
-    console.error('Failed to get Google tokens', error);
-    throw error;
-  }
-}
-
-/**
- * Get user information from Google using an access token
- */
-export async function getGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo> {
-  try {
-    const response = await fetch(
-      'https://www.googleapis.com/oauth2/v2/userinfo',
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user info from Google: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Failed to get Google user info', error);
-    throw error;
-  }
-}
 
 export default {
   googleClient,
   verifyGoogleToken,
-  getGoogleAuthUrl,
-  getGoogleTokens,
-  getGoogleUserInfo
 }; 

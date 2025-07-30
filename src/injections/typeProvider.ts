@@ -59,7 +59,6 @@ export type {
 
 /**
  * Type Provider for Dependency Injection
- * This class manages type definitions for use throughout the application
  */
 export class TypeProvider {
   private static instance: TypeProvider;

@@ -35,7 +35,6 @@ export const generateToken = async (user: any): Promise<string> => {
   const jwtHandler = (jwtApp as any).decorator.jwt;
   const token = await jwtHandler.sign(payload);
   
-  // Redis storage is now handled by the service layer
   return token;
 };
 
@@ -71,6 +70,13 @@ export const verifyToken = async (token: string): Promise<any | null> => {
 export const invalidateToken = async (userId: string): Promise<void> => {
   const logger = utilityProvider.getLogger();
   logger.debug(`Token invalidation request for user ${userId}`);
+  try {
+    // Invalidate the token by deleting it from Redis
+    await configProvider.getRedisClient().del(`user:${userId}:token`);
+    logger.info(`Token invalidated for user ${userId}`);
+  } catch (error) {
+    logger.error('Error invalidating token:', error);
+  }
 };
 
 export default {

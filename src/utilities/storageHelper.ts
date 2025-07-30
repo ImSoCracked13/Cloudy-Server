@@ -3,7 +3,6 @@ import { configProvider } from '../injections/configProvider';
 
 /**
  * MinIO Helper for direct storage operations
- * This replaces the storageRepository, storageService, and storageController
  */
 export class StorageHelper {
   private static instance: StorageHelper;
@@ -358,7 +357,7 @@ export class StorageHelper {
         expirySeconds
       );
     } catch (error) {
-      throw new this.errorHandler.StorageError('Failed to generate download URL');
+      throw new this.errorHandler.StorageError('Failed to generate download or preview URL');
     }
   }
 

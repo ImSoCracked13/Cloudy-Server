@@ -231,12 +231,12 @@ export class UserService {
     this.logger.info(`User ${normalizedInput} logged in successfully`);
     
     // Store last login time in cache
-    await this.cacheHandler.setHashField(`user:${user.id}:stats`, 'lastLogin', Date.now().toString());
+    await this.cacheHandler.setHashField(`user:${user.id}:stats`, 'lastLogin', new Date().toISOString());
     await this.cacheHandler.incrementHashField(`user:${user.id}:stats`, 'loginCount');
     
     // Track active user in cache
-    await this.cacheHandler.addToSortedSet('users:active', Date.now(), user.id);
-    
+    await this.cacheHandler.addToSortedSet('users:active', Date.now(), `${user.id}|${new Date().toISOString()}`);
+
     // Generate a token for the user with authProvider explicitly included
     const token = await this.generateToken({ id: user.id, email: user.email, role: user.role, authProvider: user.authProvider });
     
@@ -332,11 +332,11 @@ export class UserService {
     this.logger.info(`Google authentication successful for user ${user.id}`);
     
     // Store last login time in cache
-    await this.cacheHandler.setHashField(`user:${user.id}:stats`, 'lastLogin', Date.now().toString());
+    await this.cacheHandler.setHashField(`user:${user.id}:stats`, 'lastLogin', new Date().toISOString());
     await this.cacheHandler.incrementHashField(`user:${user.id}:stats`, 'loginCount');
     
     // Track active user in cache
-    await this.cacheHandler.addToSortedSet('users:active', Date.now(), user.id);
+    await this.cacheHandler.addToSortedSet('users:active', Date.now(), `${user.id}|${new Date().toISOString()}`);
     
     return {user, token};
   }
@@ -481,7 +481,7 @@ export class UserService {
     });
     await emailHandler.sendVerificationEmail(email, newToken);
     // Return the token for client-side email sending
-    return {token: newToken };
+    return { token: newToken };
   }
 
   /**

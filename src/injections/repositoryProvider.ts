@@ -3,7 +3,6 @@ import { UserRepository } from '../repositories/userRepository';
 
 /**
  * Repository Provider for Dependency Injection
- * This class manages all repository instances
  */
 export class RepositoryProvider {
   private static instance: RepositoryProvider;

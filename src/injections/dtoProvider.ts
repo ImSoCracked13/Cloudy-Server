@@ -36,7 +36,6 @@ export type {
 
 /**
  * DTO Provider for Dependency Injection
- * This class manages DTOs and conversion functions
  */
 export class DtoProvider {
   private static instance: DtoProvider;

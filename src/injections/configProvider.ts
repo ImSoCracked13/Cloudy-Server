@@ -10,7 +10,6 @@ export { pgTable, uuid, varchar, timestamp, boolean, integer, jsonb, eq, and, or
 
 /**
  * Config Provider for Dependency Injection
- * This class manages all configuration files
  */
 export class ConfigProvider {
   private static instance: ConfigProvider;
