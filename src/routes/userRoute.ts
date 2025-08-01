@@ -20,10 +20,8 @@ export const userRoute = (app: any) => {
    * Helper function to verify JWT authentication for user operations
    */
   const verifyAuth = async (context: any) => {
-    // Try to get token from cookie
     let token = context.cookies?.jwt;
 
-    // Try authorization header to get token if no tokens stored in cookies
     if (!token) {
       const headerValue = 
         // Request headers map
@@ -35,13 +33,13 @@ export const userRoute = (app: any) => {
         const [type, value] = headerValue.split(' ');
         if (type === 'Bearer' && value) {
           token = value;
-          // Store the token in cookie for future requests
+          // Currently cookie is not available
           context.set.cookie = {
             jwt: value,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
-            maxAge: 60 * 60, // an hour
+            maxAge: 60 * 60,
             path: '/'
           };
         }
@@ -81,8 +79,6 @@ export const userRoute = (app: any) => {
   };
 
   return app
-  
-    // Public routes
     // Register
     .post('/register', async ({ body }: { body: any, set: any }) => {
       try {
@@ -117,8 +113,6 @@ export const userRoute = (app: any) => {
         if (!cleanIdentifier || !cleanPassword) {
           throw new Error('Login identifier and password cannot be empty');
         }
-        
-
         
         // Call the controller with the appropriate identifier
         const result = await userController.login(cleanIdentifier, cleanPassword);
@@ -162,7 +156,7 @@ export const userRoute = (app: any) => {
         
         return result;
       } catch (error) {
-        console.error('Google auth error:', error);
+        console.error('Google Auth route error:', error);
       }
     })
 
@@ -192,7 +186,7 @@ export const userRoute = (app: any) => {
           message: 'Logged out successfully'
         };
       } catch (error) {
-        console.error('Error logging out:', error);
+        console.error('Logout route error:', error);
       }
     })
     
@@ -208,7 +202,7 @@ export const userRoute = (app: any) => {
         
         return result;
       } catch (error) {
-        console.error('Error verifying email:', error);
+        console.error('Verify Email Route error:', error);
       }
     })
     
@@ -248,7 +242,7 @@ export const userRoute = (app: any) => {
         
         return result;
       } catch (error: any) {
-        throw error;
+        console.error('Delete account route error:', error);
       }
     })
 
@@ -290,7 +284,7 @@ export const userRoute = (app: any) => {
           }
         };
       } catch (error) {
-        console.error('Error getting current user:', error);
+        console.error('Getting current user route error:', error);
       }
     })
 };

@@ -20,10 +20,8 @@ export const fileRoute = (app: any) => {
    * Helper function to verify JWT authentication for file operations
    */
   const verifyAuth = async (context: any) => {
-    // Try to get token from cookie
     let token = context.cookies?.jwt;
 
-    // Try authorization header to get token if no tokens stored in cookies
     if (!token) {
       const headerValue = 
         // Request headers map
@@ -35,13 +33,13 @@ export const fileRoute = (app: any) => {
         const [type, value] = headerValue.split(' ');
         if (type === 'Bearer' && value) {
           token = value;
-          // Store the token in cookie for future requests
+          // Currently cookie is not available
           context.set.cookie = {
             jwt: value,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
-            maxAge: 60 * 60, // an hour for file operations
+            maxAge: 60 * 60,
             path: '/'
           };
         }
@@ -97,8 +95,7 @@ export const fileRoute = (app: any) => {
         const isBin = query.isBin === 'true';
         const location = isBin ? 'Bin' : 'Drive';
         
-        // Use existing getFilesByPath method to get files
-        // Find its path first, otherwise use root path
+        // Find path first, otherwise use root path
         let path = '/';
         if (parentId) {
           const folder = await fileController.getFileById(parentId, userId);

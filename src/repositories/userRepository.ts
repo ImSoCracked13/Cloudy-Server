@@ -35,7 +35,7 @@ export class UserRepository {
       const db = configProvider.getDatabase();
       const { users } = schemaProvider.getUserSchema();
       
-      // First verify the user exists
+      // Verify the user exists
       const existingUser = await this.findById(id);
       if (!existingUser) {
         return;
@@ -65,7 +65,7 @@ export class UserRepository {
     // Normalize email to lowercase for consistent matching
     const normalizedEmail = email.toLowerCase().trim();
     
-    // Try exact match first
+    // Try exact match
     let [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
     
     // If not found, try case-insensitive match
@@ -86,7 +86,7 @@ export class UserRepository {
     // Normalize input to lowercase for consistent matching
     const normalizedInput = usernameOrEmail.toLowerCase().trim();
     
-    // First try to find by exact email match
+    // Find by exact email match
     if (normalizedInput.includes('@')) {
       const [userByEmail] = await db.select().from(users).where(ilike(users.email, normalizedInput));
       

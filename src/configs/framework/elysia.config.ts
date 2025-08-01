@@ -42,7 +42,7 @@ export class ElysiaConfig {
       credentials: true, // Allow cookies to be sent with requests
       maxAge: 3600, // 1 hour
       preflight: true,
-      exposedHeaders: ['set-cookie'] // Expose cookie headers
+      exposedHeaders: ['set-cookie']
     };
   }
 
@@ -60,7 +60,7 @@ export class ElysiaConfig {
       server: {
         port: process.env.PORT || 3000,
         hostname: process.env.HOST || 'localhost',
-        idleTimeout: 300000, // 5 minutes (keep-alive)
+        idleTimeout: 300000,
 
         // Fly.io-specific: Disable proxy buffering
         headers: {
@@ -96,23 +96,23 @@ static applyCookie(app: any, cookieConfig: any = {}): any {
   const isProduction = process.env.NODE_ENV === 'production';
   const domain = isProduction ? 'https://cloudy-client-rho.vercel.app' : undefined;
 
-  // This feature is currently experimental in Elysia, and not eligible for production in use
+  // This feature is currently experimental in Elysia, and not eligible for production in use and now completely useless
   const defaultCookieConfig = {
-    name: 'jwt',                // Enable JWT cookies
-    httpOnly: isProduction,     // Prevent JavaScript access (XSS safe)
-    secure: isProduction,       // Use HTTPS-only in production
-    sameSite: 'None',           // Use 'Lax' in development
-    maxAge: 60 * 60,            // Default expiry: 1 hour
-    path: '/',                  // Apply to entire domain
-    domain,                     // Set domain in production
-    partitioned: isProduction,  // For Chrome's CHIPS feature
-    priority: 'high'            // Important cookies
+    name: 'jwt',                
+    httpOnly: isProduction,     
+    secure: isProduction,       
+    sameSite: 'None',           
+    maxAge: 60 * 60,            
+    path: '/',                  
+    domain,                     
+    partitioned: isProduction,  
+    priority: 'high'            
   };
 
   return app.use(
     cookie({
       ...defaultCookieConfig,
-      ...cookieConfig, // Allow overrides (e.g., per token type)
+      ...cookieConfig,
     })
   );
 }

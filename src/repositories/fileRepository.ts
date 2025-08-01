@@ -8,11 +8,9 @@ export class FileRepository {
    */
   static async createFile(fileData: any): Promise<File> {
     try {
-      // Get database and schema
       const db = configProvider.getDatabase();
       const { files } = schemaProvider.getFileSchema();
       
-      // Validate required fields
       if (!fileData.ownerId) {
         throw new Error('ownerId is required');
       }
@@ -29,7 +27,7 @@ export class FileRepository {
             // Try to parse if it's a JSON string
             processedMetadata = JSON.parse(fileData.metadata);
           } catch (e) {
-            // If it's not valid JSON but still a string, store it as an object
+            // Store it as a string if parsing fails
             processedMetadata = { value: fileData.metadata };
           }
         } else if (typeof fileData.metadata === 'object') {
@@ -55,14 +53,6 @@ export class FileRepository {
         updatedAt: new Date()
       };
       
-      console.log('Final insert data prepared:', {
-        ownerId: insertData.ownerId,
-        objectName: insertData.objectName,
-        objectPath: insertData.objectPath,
-        location: insertData.location,
-        metadata: insertData.metadata
-      });
-      
       // Insert the record
       const results = await db.insert(files).values(insertData).returning();
       
@@ -75,15 +65,13 @@ export class FileRepository {
         throw new Error('Failed to create file record');
       }
       
-      // Return the created file with metadata as is(no need to parse again)
+      // Return the created file with metadata
       return {
         ...file,
         metadata: file.metadata
       } as File;
       
     } catch (error) {
-      console.error('Error in fileRepository.create:', error);
-
       if (error instanceof Error) {
         if (error.message.includes('duplicate key')) {
           throw new Error('File with the same name already exists in this location');
@@ -131,7 +119,7 @@ export class FileRepository {
       
       return updatedFile as File | undefined;
     }
-  
+
   /**
    * Permanently delete a file
    */
@@ -149,7 +137,7 @@ export class FileRepository {
   }
 
   /**
-   * Empty bin by permanently deleting all files in bin except the root bin folder
+   * Delete all files in bin permanently
    */
   static async deleteAllFiles(ownerId: string): Promise<File[]> {
     const db = configProvider.getDatabase();
@@ -237,7 +225,7 @@ export class FileRepository {
     // Ensure the path starts with a slash for consistency
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     
-    // Now perform the actual query for the specific path in creation order
+    // Perform the query for the specific path in creation order
     const results = await db
       .select()
       .from(files)
@@ -249,13 +237,13 @@ export class FileRepository {
           eq(files.isDeleted, false)
         )
       )
-      .orderBy(files.createdAt); // Order by creation time for consistent natural order
+      .orderBy(files.createdAt);
     
     return results as File[];
   }
 
   /**
-   * Find a file by name and path in a specific location, this will be used for checking existing file
+   * Find a file by name and path in a specific location
    */
   static async findByNameAndPath(ownerId: string, fileName: string, path: string, location: FileLocation): Promise<File | undefined> {
     const db = configProvider.getDatabase();

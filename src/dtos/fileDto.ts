@@ -1,23 +1,3 @@
-import { z } from 'zod';
-
-// File upload DTO schema
-export const FileUploadZodSchema = z.object({
-  file: z.any(), // This will be validated in the middleware
-  path: z.string().optional(),
-  overwriteIfExists: z.boolean().optional().default(false)
-});
-
-// File move DTO schema
-export const FileMoveDtoSchema = z.object({
-  fileId: z.string().uuid(),
-  newPath: z.string().optional(),
-  newLocation: z.enum(['Drive', 'Bin'])
-});
-
-// Response DTO types
-export type FileUploadZodDto = z.infer<typeof FileUploadZodSchema>;
-export type FileMoveDto = z.infer<typeof FileMoveDtoSchema>;
-
 /**
  * DTO for file response returned to client
  */

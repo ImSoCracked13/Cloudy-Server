@@ -37,7 +37,6 @@ export class EmailHandler {
       this.redis = configProvider.getRedisClient();
       this.crypto = configProvider.getCryptoConfig();
       
-      // Test Redis connection
       try {
         await this.redis.ping();
         this.logger.info('EmailHandler: Redis connection verified');
@@ -68,13 +67,11 @@ export class EmailHandler {
     try {
       this.logger.info(`Sending verification email to ${email}`);
       
-      // Build the verification URL for the email
       const verificationUrl = `${FRONTEND_URL}/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
       
       // Store the token in Redis
       await this.storeVerificationToken(token, email);
       
-      // Log the verification URL for debugging
       this.logger.info(`Verification URL for ${email}: ${verificationUrl}`);
       
       return true;
@@ -95,8 +92,6 @@ export class EmailHandler {
         this.logger.error('Redis client not initialized');
         return;
       }
-
-      // Test Redis connection before storing
       await this.redis.ping();
       
       // Store the token with expiry using Upstash Redis syntax

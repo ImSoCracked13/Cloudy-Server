@@ -33,7 +33,6 @@ export class FileController {
         throw new Error('File upload returned invalid data');
       }
       
-      // Convert to DTO
       const fileDto = dtoProvider.getFileDto().toFileResponseDto(file);
       
       return {
@@ -78,7 +77,6 @@ export class FileController {
       
       const { fileStream, file, metadata } = await this.fileService.downloadFile(fileId, userId);
       
-      // Create download DTO with proper content type
       return {
         stream: fileStream,
         name: file.objectName,
@@ -100,7 +98,6 @@ export class FileController {
         throw new Error('File ID, User ID, and new name are required');
       }
       
-      // Call the service to rename the file
       await this.fileService.renameFile(fileId, newName);
       
       // Force a refresh of the file to ensure we have the latest data
@@ -110,7 +107,6 @@ export class FileController {
         throw new Error('Failed to verify file rename - file not found after operation');
       }
       
-      // Convert to DTO
       const fileDto = dtoProvider.getFileDto().toFileResponseDto(renamedFile);
       
       return {
@@ -134,7 +130,6 @@ export class FileController {
       
       const duplicatedFile = await this.fileService.duplicateFile(fileId);
       
-      // Convert to DTO
       const fileDto = dtoProvider.getFileDto().toFileResponseDto(duplicatedFile);
       
       return {
@@ -158,7 +153,6 @@ export class FileController {
       
       const movedFile = await this.fileService.moveToBin(fileId);
       
-      // Convert to DTO
       const fileDto = dtoProvider.getFileDto().toFileResponseDto(movedFile);
       
       return {
@@ -179,7 +173,6 @@ export class FileController {
 
       const restoredFile = await this.fileService.restoreFile(fileId);
       
-      // Convert to DTO
       const fileDto = dtoProvider.getFileDto().toFileResponseDto(restoredFile);
       
       return {
@@ -243,7 +236,6 @@ export class FileController {
         throw new Error('File not found');
       }
       
-      // Convert to DTO
       const fileDto = dtoProvider.getFileDto().toFileResponseDto(file);
       
       return {
@@ -285,7 +277,6 @@ export class FileController {
         throw new Error('User ID is required');
       }
       
-      // Get storage stats from service
       const stats = await this.fileService.getStorageStats(userId);
       
       return {

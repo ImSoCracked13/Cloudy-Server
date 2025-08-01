@@ -6,7 +6,7 @@ import { utilityProvider } from '../injections/utilityProvider';
 const DEFAULT_STORAGE_LIMIT = 5368709120;
 
 export class UserService {
-  private readonly VERIFICATION_TOKEN_EXPIRY = parseInt(process.env.VERIFICATION_TOKEN_EXPIRY || '86400000'); // 24 hours in ms
+  private readonly VERIFICATION_TOKEN_EXPIRY = parseInt(process.env.VERIFICATION_TOKEN_EXPIRY || '3600000'); // 1 hour in ms
   private userRepository;
   private logger;
   private passwordHasher;
@@ -115,66 +115,13 @@ export class UserService {
     if (userData.authProvider === 'local' && verificationToken) {
       this.logger.info(`Verification token created for ${user.email}, email will be sent by frontend`);
       
-      // Store in cache that we've prepared a token for this user
+      // Store in cache with a token for user
       try {
         const cacheKey = `verification_token_created:${user.email}`;
         await this.cacheHandler.setInCache(cacheKey, 'true', 60 * 60); // Cache for 1 hour
       } catch (cacheError) {
         this.logger.warn(`Failed to store verification token in cache: ${cacheError instanceof Error ? cacheError.message : 'Unknown error'}`);
       }
-    }
-
-    // Auto account deletion for local users if not verified
-    if (userData.authProvider === 'local' && !user.isVerified) {
-      this.logger.info(`User ${user.email} is not verified, scheduling auto account deletion`);
-      
-      // Schedule deletion after 1 hour
-      setTimeout(async () => {
-        try {
-          // Check if user still exists and is still unverified
-          const currentUser = await this.userRepository.findById(user.id);
-          if (currentUser && !currentUser.isVerified && currentUser.authProvider === 'local') {
-            // Clean up user's storage folders
-            try {
-              const baseFolder = 'Local Users';
-              const userBasePath = `${baseFolder}/${user.id}/`;
-              await this.storageHelper.deleteFolder(userBasePath);
-              this.logger.info(`Storage folders deleted for user ${user.id}`);
-            } catch (storageError) {
-              this.logger.warn(`Failed to delete storage for user ${user.id}:`, storageError);
-            }
-            
-            // Clean up user's files from database
-            try {
-              const fileRepository = repositoryProvider.getFileRepository();
-              await fileRepository.deleteAllFilesByUserId(user.id);
-              this.logger.info(`Database file records deleted for user ${user.id}`);
-            } catch (dbError) {
-              this.logger.warn(`Failed to delete file records for user ${user.id}:`, dbError);
-            }
-            
-            // Delete user from database
-            await this.userRepository.deleteUser(user.id);
-            
-            // Clear user's cache entries
-            try {
-              await this.cacheHandler.deleteFromCache(`user:${user.id}:*`);
-              await this.cacheHandler.deleteFromCache('users:active');
-              this.logger.info(`Cache entries cleared for user ${user.id}`);
-            } catch (cacheError) {
-              this.logger.warn(`Failed to clear cache for user ${user.id}:`, cacheError);
-            }
-            
-            this.logger.info(`Auto-deleted unverified user ${user.email}`);
-          } else if (!currentUser) {
-            this.logger.info(`User ${user.email} no longer exists, skipping auto-deletion`);
-          } else if (currentUser.isVerified) {
-            this.logger.info(`User ${user.email} is now verified, skipping auto-deletion`);
-          }
-        } catch (deleteError) {
-          this.logger.error(`Failed to auto-delete unverified user ${user.email}:`, deleteError);
-        }
-      }, 1000 * 60 * 60); // 1 hour
     }
 
     this.logger.info(`User registration completed: ${user.id}`);
@@ -276,27 +223,6 @@ export class UserService {
       if (user && user.authProvider === 'local') {
         throw new Error('A user with this email already exists with password authentication');
       }
-      
-      // If user exists but doesn't have googleId, update their profile
-      if (user) {
-        this.logger.info(`Updating existing user ${user.id} with Google information`);
-        
-        // Update Google ID and potentially username
-        const updates: any = { googleId: googleUser.id };
-        
-        // Update username with name from Google if not already set
-        if ((!user.username || user.username === user.email.split('@')[0]) && 
-            googleUser.firstName && googleUser.lastName) {
-          const generatedUsername = `${googleUser.firstName}${googleUser.lastName}`.toLowerCase();
-          updates.username = generatedUsername;
-        }
-        
-        // Update the user record
-        await this.userRepository.updateUser(user.id, updates);
-        
-        // Reload user to get updated data
-        user = await this.userRepository.findById(user.id);
-      }
     }
     
     // If user still not found, register a new one
@@ -316,7 +242,7 @@ export class UserService {
       user = await this.register(userData);
     }
     
-    // At this point, user must exist
+    // Check if user was created successfully
     if (!user) {
       throw new Error('Failed to authenticate with Google');
     }
@@ -345,11 +271,17 @@ export class UserService {
    * Handle user logout
    */
   async logout(token: string): Promise<void> {
-    if (!token) {
-      throw new Error('No token provided');
+    try {
+      if (!token) {
+        throw new Error('No token provided');
+      }
+      await this.encoder.invalidateToken(token);
+      this.logger.info(`User logged out successfully`);
+
+      } catch (error) {
+        this.logger.error(`Logout failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return;
     }
-    await this.encoder.invalidateToken(token);
-    this.logger.info(`User logged out successfully`);
   }
 
   /**
@@ -367,12 +299,12 @@ export class UserService {
         
         try {
           // Extract email from base64-encoded token (from EmailJS)
-          this.logger.info(`Verifying email with token ${token.substring(0, 8)}...`);
+          this.logger.info(`Verifying email with token ${token}...`);
           
-          // Attempt to decode if it's a base64 token
+          // Decode if it's a base64 token
           let email = null;
           try {
-            this.logger.info(`Attempting to decode base64 token: ${token.substring(0, 8)}...`);
+            this.logger.info(`Attempting to decode base64 token: ${token}...`);
             // Add padding if needed to make it valid base64
             let paddedToken = token;
             while (paddedToken.length % 4 !== 0) {
@@ -381,7 +313,7 @@ export class UserService {
             
             const decodedToken = Buffer.from(paddedToken, 'base64').toString('utf-8');
             
-            // If the decoded token is an email (contains @ symbol)
+            // If the decoded token is an email
             if (decodedToken.includes('@')) {
               email = decodedToken;
               this.logger.info(`Extracted email from base64 token: ${email}`);
@@ -392,7 +324,7 @@ export class UserService {
             this.logger.warn(`Failed to decode token as base64: ${decodeError instanceof Error ? decodeError.message : 'Unknown error'}`);
           }
           
-          // If we extracted an email, find the user
+          // If Email is extracted, find user by email
           if (email) {
             user = await this.userRepository.findByEmail(email);
             
@@ -406,14 +338,14 @@ export class UserService {
             // This is needed for EmailJS verification flow where token is generated client-side
             if (!user.isVerified) {
               this.logger.info(`User ${user.email} found by email token, marking as verified`);
-
+            
             } else {
               this.logger.info(`User ${user.email} is already verified`);
               return user;
             }
           }
           
-          // Try to get from Redis if we have a user
+          // Try to get user from Redis
           if (user) {
             // Check if user has a Redis verification token
             const cacheKey = `verification_token:${user.email}`;
@@ -466,6 +398,9 @@ export class UserService {
     }
   }
 
+  /**
+   * Generate a verification token for email verification
+   */
   async sendVerificationEmail(email: string): Promise<any> {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
@@ -473,12 +408,14 @@ export class UserService {
     }
     const emailHandler = utilityProvider.getEmailHandler();
     const userRepository = repositoryProvider.getUserRepository();
+
     const newToken = await emailHandler.generateVerificationToken();
-    const newExpiry = new Date(Date.now() + (24 * 60 * 60 * 1000)); // 24 hours
+    const newExpiry = new Date(Date.now() + (60 * 60 * 1000)); // 1 hour
     await userRepository.updateUser(user.id, {
       verificationToken: newToken,
       verificationExpires: newExpiry
     });
+    
     await emailHandler.sendVerificationEmail(email, newToken);
     // Return the token for client-side email sending
     return { token: newToken };
@@ -523,10 +460,8 @@ export class UserService {
         
         this.logger.info(`Deleting storage folders for user ${userId} at path ${userBasePath}`);
         await this.storageHelper.deleteFolder(userBasePath);
-        this.logger.info(`Storage folders deleted for user ${userId}`);
       } catch (storageError) {
         this.logger.error(`Error deleting storage for user ${userId}:`, storageError);
-        // Continue with account deletion even if storage deletion fails
       }
       
       // Delete user's files from database
@@ -536,7 +471,6 @@ export class UserService {
         this.logger.info(`Database file records deleted for user ${userId}`);
       } catch (dbError) {
         this.logger.error(`Error deleting file records for user ${userId}:`, dbError);
-        // Continue with account deletion even if file deletion fails
       }
       
       // Delete user from database
@@ -550,7 +484,6 @@ export class UserService {
         this.logger.info(`Cache entries cleared for user ${userId}`);
       } catch (cacheError) {
         this.logger.warn(`Error clearing cache for user ${userId}:`, cacheError);
-        // Continue since cache clearing is not critical
       }
       this.logger.info(`Account deletion successful for user ${userId}`);
       return true;
@@ -600,6 +533,8 @@ export class UserService {
    * Verify a JWT token
    */
   async verifyToken(token: string): Promise<any> {
-    return await this.encoder.verifyToken(token);
+    const result = await this.encoder.verifyToken(token);
+    this.logger.info(`Token verified successfully`);
+    return result;
   }
 }

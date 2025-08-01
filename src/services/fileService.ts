@@ -457,17 +457,13 @@ export class FileService {
           ? `${userBasePath}${newFile.location}/${newFile.objectName}` 
           : `${userBasePath}${newFile.location}/${newFile.objectPath === '/' ? '' : newFile.objectPath.replace(/^\/+/, '')}/${newFile.objectName}`;
         
-        this.logger.debug(`Copying file in storage from ${sourcePath} to ${destPath}`);
-        
-      await this.storageHelper.duplicateFile(sourcePath, destPath);
+        await this.storageHelper.duplicateFile(sourcePath, destPath);
         this.logger.debug(`File copied successfully in storage`);
         
         // Invalidate caches to ensure updated data is fetched
         await this.fileTracker.invalidateOwnerCache(file.ownerId, file.location === 'Drive' ? 'drive' : 'bin');
 
       } catch (error) {
-        this.logger.error(`Failed to copy file in storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        
         // Delete the database record if storage copy failed
         try {
           await repositoryProvider.getFileRepository().deleteFile(newFile.id);
@@ -649,7 +645,7 @@ export class FileService {
         const existingFileInDrive = await fileRepository.findByNameAndPath(file.ownerId, file.objectName, file.objectPath, 'Drive');
         if (existingFileInDrive) {
           this.logger.error(`File "${file.objectName}" with same name already exists in Drive, cannot restore from Bin`);
-          throw new Error(`File "${file.objectName}" with same name already exists in Drive, cannot restore from Bin`);
+          return null;
         }
         const updatedFile = await fileRepository.updateFile(fileId, {
           location: targetLocation,
@@ -697,7 +693,8 @@ export class FileService {
 
       // Only allow deletion of files that are in the bin
       if (file.location !== 'Bin') {
-        throw new Error('Only files in the bin can be permanently deleted');
+        this.logger.warn(`File ${fileId} is not in Bin, cannot delete permanently`);
+        return;
       }
 
       this.logger.info(`File found for deletion: ${fileId}, name: ${file.objectName}, path: ${file.objectPath}`);
@@ -743,7 +740,7 @@ export class FileService {
       // Force a fresh fetch from the database to ensure we have the latest file data
       await this.cacheHandler.deleteFromCache(`user:${File}`);
 
-      // Get all files in bin using findByPath for root path
+      // Get all files in bin
       const fileRepository = repositoryProvider.getFileRepository();
       const files = await fileRepository.findByPath(userId, '/', 'Bin');
       
@@ -839,7 +836,6 @@ export class FileService {
       
       // Check if the Drive and Bin folders already exist in database
       const fileRepository = repositoryProvider.getFileRepository();
-      this.logger.info(`Checking if folders exist for user ${userId}`);
       
       // Check Drive folder
       const existingDriveFiles = await fileRepository.findByPath(userId, '/', 'Drive');
@@ -962,14 +958,12 @@ export class FileService {
       
       // For root path, include files directly in root and folders with self-named paths
       if (normalizedPath === '/') {
-        // Include files with path = '/' or path = ''
         if (file.objectPath === '/' || file.objectPath === '') {
           return true;
         }
         return false;
       }
       
-      // For subfolders, match the exact path
       return file.objectPath === normalizedPath;
     });
     
@@ -999,23 +993,23 @@ export class FileService {
     }
     
     try {
-    // Get user's base storage path
-    const userBasePath = await this.getUserStorageBasePath(file.ownerId);
-    
-    // Prepare storage path using user's base path
+      // Get user's base storage path
+      const userBasePath = await this.getUserStorageBasePath(file.ownerId);
+      
+      // Prepare storage path using user's base path
       const storagePath = file.objectPath === '/' 
         ? `${userBasePath}${file.location}/${file.objectName}` 
         : `${userBasePath}${file.location}/${file.objectPath === '/' ? '' : file.objectPath.replace(/^\/+/, '')}/${file.objectName}`;
         
-    this.logger.debug(`Storage path for file URL: ${storagePath}`);
-    
-    // Get presigned URL
-    const url = await this.storageHelper.getPresignedUrl(storagePath, 3600); // 1 hour expiry
-    
-    // Track URL generation
-    await this.fileTracker.incrementFileStat(fileId, 'urlGenerations');
-    
-    return url;
+      this.logger.debug(`Storage path for file URL: ${storagePath}`);
+      
+      // Get presigned URL
+      const url = await this.storageHelper.getPresignedUrl(storagePath, 3600); // 1 hour expiry
+      
+      // Track URL generation
+      await this.fileTracker.incrementFileStat(fileId, 'urlGenerations');
+      
+      return url;
       } catch (error) {
       throw new Error(`Failed to generate URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

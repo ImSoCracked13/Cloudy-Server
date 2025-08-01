@@ -6,7 +6,7 @@ const redis = configProvider.getRedisClient();
 type FileLocation = 'drive' | 'bin';
 
 /**
- * Invalidate file caches for a user
+ * Invalidate file caches
  */
 export async function invalidateOwnerCache(ownerId: string, location?: FileLocation): Promise<void> {
   try {
@@ -31,7 +31,6 @@ export async function invalidateOwnerCache(ownerId: string, location?: FileLocat
       
       if (keys && keys.length > 0) {
         console.log(`Deleting ${keys.length} cache keys for user ${ownerId}`);
-        // Delete each key individually
         for (const key of keys) {
           await redis.del(key);
         }
@@ -40,7 +39,6 @@ export async function invalidateOwnerCache(ownerId: string, location?: FileLocat
         utilityProvider.getLogger().info(`No cache keys found for pattern ${pattern}`);
       }
     } catch (keysError) {
-      // Handle keys operation error separately
       if (keysError && Object.keys(keysError).length > 0) {
         utilityProvider.getLogger().error(`Error getting keys for pattern ${pattern}:`, keysError);
       } else {
@@ -51,7 +49,6 @@ export async function invalidateOwnerCache(ownerId: string, location?: FileLocat
     // Also invalidate any storage stats caches
     await redis.del(`user:${ownerId}:storage_stats`);
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error('Error invalidating owner cache:', error);
     } else {
@@ -68,7 +65,6 @@ export async function incrementUserStat(userId: string, statName: string, by: nu
   try {
     await redis.hincrby(`user:${userId}:stats`, statName, by);
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Error incrementing user stat ${statName}:`, error);
     } else {
@@ -84,7 +80,6 @@ export async function incrementFileStat(fileId: string, statName: string, by: nu
   try {
     await redis.hincrby(`file:${fileId}:stats`, statName, by);
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Error incrementing file stat ${statName}:`, error);
     } else {

@@ -9,9 +9,6 @@ import { routeProvider } from './injections/routeProvider';
 import { middlewareProvider } from './injections/middlewareProvider';
 import { utilityProvider } from './injections/utilityProvider';
 
-// Configure Bun to accept self-signed certificates
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 const startup = async () => {
   const logger = utilityProvider.getLogger();
   logger.info('--- Initializing Services ---');
@@ -63,12 +60,12 @@ const startup = async () => {
       // JWT is needed for authentication token generation
       jwtSecret: process.env.JWT_SECRET,
       
-      // Cookie configuration for secure defaults
+      // Currently cookie is not used and undeveloped, but can apply it for future use
       cookieConfig: {
-      httpOnly: true,                                                     // Prevent JavaScript access (XSS safe)
-      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax', // Use 'Lax' in development
-      maxAge: 60 * 60,                                                    // Default expiry: 1 hour
-      path: '/',                                                          // Apply to entire domain
+      httpOnly: true,                                                     
+      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax', 
+      maxAge: 60 * 60,                                                    
+      path: '/',                                                         
       }
     };
     

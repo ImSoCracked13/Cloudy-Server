@@ -4,12 +4,10 @@ import { utilityProvider } from '../injections/utilityProvider';
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRY = 60 * 60; // 1 hour in seconds
 
-// Validate JWT_SECRET exists
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required but not set');
 }
 
-// Create a JWT app using configProvider
 const jwtApp = configProvider.applyJwt(configProvider.createApp(), JWT_SECRET);
 
 export const generateToken = async (user: any): Promise<string> => {
@@ -19,7 +17,7 @@ export const generateToken = async (user: any): Promise<string> => {
     id: user.id,
     email: user.email,
     role: user.role,
-    authProvider: user.authProvider || 'local', // Include authProvider in token
+    authProvider: user.authProvider || 'local',
     exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRY
   };
   

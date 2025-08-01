@@ -45,7 +45,6 @@ export class StorageHelper {
     metadata: Record<string, string>
   ): Promise<void> {
     try {
-      this.logger.debug(`Uploading file to ${objectPath}, size: ${size} bytes`);
       
       // Check if the file buffer is valid
       if (!fileBuffer || !(fileBuffer instanceof Buffer)) {
@@ -76,16 +75,6 @@ export class StorageHelper {
         size,
         metadata
       );
-      
-      // Verify the file was uploaded successfully
-      try {
-        await this.minioClient.statObject(this.bucketName, objectPath);
-        this.logger.debug(`File upload verified at ${objectPath}`);
-      } catch (verifyError) {
-        throw new Error(`Failed to verify file upload: ${
-          verifyError instanceof Error ? verifyError.message : 'Unknown error'
-        }`);
-      }
       
       this.logger.debug(`File uploaded successfully to ${objectPath}`);
     } catch (error) {
@@ -155,14 +144,6 @@ export class StorageHelper {
         copySource
       );
       
-      // Verify the file was copied successfully
-      try {
-        await this.minioClient.statObject(this.bucketName, normalizedDestPath);
-        this.logger.debug(`File copy verified at ${normalizedDestPath}`);
-      } catch (verifyError) {
-        this.logger.error(`Failed to verify file copy at ${normalizedDestPath}:`, verifyError);
-      }
-      
       // Delete the source file
       await this.minioClient.removeObject(this.bucketName, normalizedSourcePath);
       this.logger.debug(`File renamed successfully from ${normalizedSourcePath} to ${normalizedDestPath}`);
@@ -180,7 +161,6 @@ export class StorageHelper {
       const normalizedSourcePath = sourceObjectPath.startsWith('/') ? sourceObjectPath.substring(1) : sourceObjectPath;
       const normalizedDestPath = destObjectPath.startsWith('/') ? destObjectPath.substring(1) : destObjectPath;
       
-      this.logger.debug(`Copying file from ${normalizedSourcePath} to ${normalizedDestPath}`);
       
       // Ensure the source file exists
       try {
@@ -213,16 +193,6 @@ export class StorageHelper {
         copySource
       );
       
-      // Verify the file was copied successfully
-      try {
-        await this.minioClient.statObject(this.bucketName, normalizedDestPath);
-        this.logger.debug(`File copy verified at ${normalizedDestPath}`);
-      } catch (verifyError) {
-        throw new Error(`Failed to verify file copy: ${
-          verifyError instanceof Error ? verifyError.message : 'Unknown error'
-        }`);
-      }
-      
       this.logger.debug(`File copied successfully from ${normalizedSourcePath} to ${normalizedDestPath}`);
     } catch (error) {
       throw new this.errorHandler.StorageError('Failed to copy file in storage: ' + 
@@ -238,8 +208,6 @@ export class StorageHelper {
       // Normalize paths
       const normalizedSourcePath = this.normalizePath(sourcePath);
       const normalizedDestPath = this.normalizePath(destinationPath);
-      
-      this.logger.debug(`Moving file from ${normalizedSourcePath} to ${normalizedDestPath}`);
       
       // Check if source exists
       try {
@@ -328,11 +296,9 @@ export class StorageHelper {
             break;
           } catch (altError) {
             this.logger.debug(`Failed to delete using alternative path ${altPath}:`, altError);
-            // Continue to next alternative path
           }
         }
         
-        // Return success status instead of throwing error
         if (!deleted) {
           this.logger.warn(`File not found at path: ${normalizedPath} or any alternative paths`);
           return false;
@@ -341,23 +307,7 @@ export class StorageHelper {
       }
     } catch (error) {
       this.logger.error(`Error deleting file from storage at path ${objectPath}:`, error);
-      // Return false to indicate failure
       return false;
-    }
-  }
-
-  /**
-   * Generate a presigned URL for file download
-   */
-  async getPresignedUrl(objectPath: string, expirySeconds: number = 3600): Promise<string> {
-    try {
-      return await this.minioClient.presignedGetObject(
-        this.bucketName,
-        objectPath, 
-        expirySeconds
-      );
-    } catch (error) {
-      throw new this.errorHandler.StorageError('Failed to generate download or preview URL');
     }
   }
 
@@ -371,60 +321,10 @@ export class StorageHelper {
       if (!normalizedPath.endsWith('/')) {
         normalizedPath = `${normalizedPath}/`;
       }
-      // Replace multiple consecutive slashes with a single slash (except at the beginning)
+      // Replace multiple consecutive slashes with a single slash
       normalizedPath = normalizedPath.replace(/([^:])\/+/g, '$1/');
       
       this.logger.debug(`Creating folder in MinIO at path: ${normalizedPath}`);
-      
-      // Check if bucket exists, create it if not
-      const bucketExists = await this.minioClient.bucketExists(this.bucketName);
-      if (!bucketExists) {
-        this.logger.info(`Bucket ${this.bucketName} does not exist, creating it`);
-        await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
-      }
-      
-      // Check if the folder already exists first
-      try {
-        const stat = await this.minioClient.statObject(this.bucketName, normalizedPath);
-        const contentType = stat.metaData?.['content-type'] || '';
-        if (contentType === 'application/x-directory') {
-          this.logger.debug(`Folder already exists at ${normalizedPath}, skipping creation`);
-          return; // It's already a folder, no need to create it
-        }
-      } catch (statError) {
-        // Folder doesn't exist, we'll create it (expected case)
-        this.logger.debug(`Folder doesn't exist at ${normalizedPath}, will create it`);
-      }
-      
-      // Create parent folders if they don't exist
-      // Split path into segments and create each parent folder
-      const pathParts = normalizedPath.split('/').filter(part => part.length > 0);
-      let currentPath = '';
-      
-      // Create each parent folder in sequence
-      for (let i = 0; i < pathParts.length; i++) {
-        currentPath += `${pathParts[i]}/`;
-        
-        try {
-          // Try to stat the current path to see if it exists
-          await this.minioClient.statObject(this.bucketName, currentPath);
-          this.logger.debug(`Path already exists: ${currentPath}`);
-        } catch (statError) {
-          // Path doesn't exist, create it
-          this.logger.debug(`Creating intermediate path: ${currentPath}`);
-          await this.minioClient.putObject(
-            this.bucketName, 
-            currentPath, 
-            Buffer.from(''), 
-            0,
-            { 
-              'Content-Type': 'application/x-directory',
-              'x-amz-meta-object-type': 'folder'
-            }
-          );
-          this.logger.debug(`Successfully created intermediate path: ${currentPath}`);
-        }
-      }
       
       // Create the final folder
       await this.minioClient.putObject(
@@ -438,18 +338,7 @@ export class StorageHelper {
         }
       );
       
-      // Verify folder creation
-      try {
-        const stat = await this.minioClient.statObject(this.bucketName, normalizedPath);
-        const contentType = stat.metaData?.['content-type'] || '';
-        if (contentType === 'application/x-directory') {
-          this.logger.debug(`Successfully created and verified folder: ${normalizedPath}`);
-        } else {
-          this.logger.warn(`Created object at ${normalizedPath} but wrong content type: ${contentType}`);
-        }
-      } catch (verifyError) {
-        this.logger.error(`Failed to verify folder creation: ${normalizedPath}`, verifyError);
-      }
+      this.logger.debug(`Successfully created folder: ${normalizedPath}`);
     } catch (error) {
       throw new this.errorHandler.StorageError('Failed to create folder: ' + 
         (error instanceof Error ? error.message : 'Unknown error'));
@@ -530,8 +419,22 @@ export class StorageHelper {
     // Replace multiple consecutive slashes with a single slash
     normalized = normalized.replace(/\/+/g, '/');
     
-    // Ensure the path doesn't start with a slash (MinIO requirement)
     return normalized;
+  }
+
+  /**
+   * Generate a presigned URL for file download
+   */
+  async getPresignedUrl(objectPath: string, expirySeconds: number = 3600): Promise<string> {
+    try {
+      return await this.minioClient.presignedGetObject(
+        this.bucketName,
+        objectPath, 
+        expirySeconds
+      );
+    } catch (error) {
+      throw new this.errorHandler.StorageError('Failed to generate download or preview URL');
+    }
   }
 
   /**
@@ -547,8 +450,7 @@ export class StorageHelper {
       
       this.logger.debug(`File exists: ${normalizedPath}`);
       return true;
-    } catch (error: any) { // Type the error as any
-      // Only log as warning if it's a "not found" error, otherwise log as error
+    } catch (error: any) {
       if (error.code === 'NotFound') {
         this.logger.debug(`File does not exist: ${objectPath}`);
       } else {

@@ -1,34 +1,3 @@
-import { z } from 'zod';
-
-// Define AuthProvider directly here to avoid circular dependencies
-export type AuthProvider = 'local' | 'google';
-
-// User registration DTO schema
-export const UserRegistrationDtoSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  firstName: z.string().min(2),
-  lastName: z.string().min(2)
-});
-
-// User login DTO schema
-export const UserLoginDtoSchema = z.object({
-  email: z.string().email(),
-  password: z.string()
-});
-
-// User update DTO schema
-export const UserUpdateDtoSchema = z.object({
-  firstName: z.string().min(2).optional(),
-  lastName: z.string().min(2).optional(),
-  password: z.string().min(8).optional()
-});
-
-// Response DTO types
-export type UserRegistrationDto = z.infer<typeof UserRegistrationDtoSchema>;
-export type UserLoginDto = z.infer<typeof UserLoginDtoSchema>;
-export type UserUpdateDto = z.infer<typeof UserUpdateDtoSchema>;
-
 /**
  * User response DTO interface
  */
@@ -40,7 +9,7 @@ export interface UserResponseDto {
   lastName?: string;
   role: string;
   isVerified: boolean;
-  authProvider: AuthProvider;
+  authProvider: 'google' | 'local';
   googleId?: string | null;
   storageUsed: number;
   storageLimit: number;

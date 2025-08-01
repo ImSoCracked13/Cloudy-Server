@@ -56,12 +56,10 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
         return cachedValue as unknown as T;
       }
     } catch (parseError) {
-      // If parsing fails, log it but don't throw
       utilityProvider.getLogger().warn(`Failed to parse Redis cache value for key ${key}:`, parseError);
       return null;
     }
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Redis cache error in get(${key}):`, error);
     } else {
@@ -145,7 +143,6 @@ export async function addToSortedSet(key: string, score: number, member: string)
     await redis.zadd(key, { score, member: memberStr });
   } catch (error) {
     if (process.env.DEBUG_REDIS === 'true') {
-      // Only log detailed error if available
       if (error && Object.keys(error).length > 0) {
         utilityProvider.getLogger().error(`Redis cache error in addToSortedSet(${key}):`, error);
       } else {
@@ -164,7 +161,6 @@ export async function incrementHashField(key: string, field: string, by: number 
   try {
     await redis.hincrby(key, field, by);
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Redis cache error in incrementHashField(${key}, ${field}):`, error);
     } else {
@@ -182,7 +178,6 @@ export async function setHashField(key: string, field: string, value: string): P
   try {
     await redis.hset(key, { [field]: value });
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Redis cache error in setHashField(${key}, ${field}):`, error);
     } else {
