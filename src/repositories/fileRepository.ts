@@ -11,14 +11,6 @@ export class FileRepository {
       const db = configProvider.getDatabase();
       const { files } = schemaProvider.getFileSchema();
       
-      if (!fileData.ownerId) {
-        throw new Error('ownerId is required');
-      }
-      
-      if (!fileData.location) {
-        throw new Error('location is required');
-      }
-      
       // Handle metadata properly before insertion
       let processedMetadata = null;
       if (fileData.metadata !== undefined && fileData.metadata !== null) {
@@ -26,12 +18,12 @@ export class FileRepository {
           try {
             // Try to parse if it's a JSON string
             processedMetadata = JSON.parse(fileData.metadata);
-          } catch (e) {
+          } catch (error) {
             // Store it as a string if parsing fails
             processedMetadata = { value: fileData.metadata };
           }
         } else if (typeof fileData.metadata === 'object') {
-          // If it's already an object, use it as is
+          // Check if its an object
           processedMetadata = fileData.metadata;
         }
       }
@@ -56,7 +48,7 @@ export class FileRepository {
       // Insert the record
       const results = await db.insert(files).values(insertData).returning();
       
-      // Handle potential array or object result
+      // Handle potential array or object result from Drizzle ORM
       const file = Array.isArray(results) && results.length > 0 
         ? results[0] 
         : (results as any);
@@ -72,11 +64,6 @@ export class FileRepository {
       } as File;
       
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes('duplicate key')) {
-          throw new Error('File with the same name already exists in this location');
-        }
-      }
       throw error;
     }
   }

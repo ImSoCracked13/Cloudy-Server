@@ -85,7 +85,6 @@ export async function setInCache<T>(key: string, value: T, expiry: number): Prom
     // Upstash Redis uses a different syntax for setting with expiry
     await redis.set(key, JSON.stringify(value), { ex: expiry });
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Redis cache error in set(${key}):`, error);
     } else {
@@ -103,7 +102,6 @@ export async function deleteFromCache(key: string): Promise<void> {
   try {
     await redis.del(key);
   } catch (error) {
-    // Only log detailed error if available
     if (error && Object.keys(error).length > 0) {
       utilityProvider.getLogger().error(`Redis cache error in delete(${key}):`, error);
     } else {

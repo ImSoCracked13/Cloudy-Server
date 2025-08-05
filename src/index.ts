@@ -37,7 +37,6 @@ const startup = async () => {
     // Create the app
     let app = configProvider.createApp();
     
-    
     // Apply only essential middleware - JWT and Swagger
     const commonMiddleware = {
       // Swagger for API documentation

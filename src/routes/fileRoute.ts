@@ -134,71 +134,41 @@ export const fileRoute = (app: any) => {
         const authError = await verifyAuth(context);
         if (authError) return authError;
         
-        // Extract data from body based on content type
         const { body, headers } = context;
         const userId = context.id;
-        let fileBuffer, metadata, size, path;
+        let fileBuffer, metadata, size, path = '/';
         
-        const contentType = headers['content-type'] || '';
-        
-        if (contentType.includes('multipart/form-data')) {
+        if (headers['content-type']?.includes('multipart/form-data')) {
           // Handle multipart form data
-          try {
-            const formData = body;
-            const file = formData.file;
-            
-            if (!file) {
-              throw new Error('File is missing in formData');
-            }
-            
-            // Convert arrayBuffer to Buffer properly
-            const arrayBuffer = await file.arrayBuffer();
-            fileBuffer = Buffer.from(arrayBuffer);
-              
-            path = formData.path || '/';           
-            
-            size = file.size;
-            metadata = {
-              name: file.name,
-              type: file.type,
-              mime_type: file.type
-            };
-          } catch (error) {
-            throw new Error('Error processing multipart form data');
+          const file = body.file;
+          if (!file) {
+            throw new Error('File is missing in form data');
           }
+          
+          fileBuffer = Buffer.from(await file.arrayBuffer());
+          size = file.size;
+          metadata = {
+            name: file.name,
+            type: file.type,
+            mime_type: file.type
+          };
+          path = body.path || '/';
         } else {
           // Handle JSON request
-          ({ fileBuffer, metadata, size, path } = body);
+          ({ fileBuffer, metadata, size, path = '/' } = body);
           
-          // Convert fileBuffer from array or other formats to Buffer
-          if (fileBuffer && !Buffer.isBuffer(fileBuffer)) {
-            if (Array.isArray(fileBuffer)) {
-              fileBuffer = Buffer.from(fileBuffer);
-            } else if (typeof fileBuffer === 'string') {
-              // Handle base64 string
-              fileBuffer = Buffer.from(fileBuffer, 'base64');
-            } else if (fileBuffer instanceof ArrayBuffer) {
-              // Handle ArrayBuffer
-              fileBuffer = Buffer.from(new Uint8Array(fileBuffer));
-            } else if (ArrayBuffer.isView(fileBuffer)) {
-              // Handle TypedArray
-              fileBuffer = Buffer.from(fileBuffer.buffer, fileBuffer.byteOffset, fileBuffer.byteLength);
-            }
+          // Convert string or array to Buffer if needed
+          if (!Buffer.isBuffer(fileBuffer)) {
+            fileBuffer = Buffer.from(fileBuffer);
           }
         }
         
-        // Validate required fields
-        if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
-          throw new Error('Missing or invalid file data');
+        // Validate request
+        if (!fileBuffer || !metadata) {
+          throw new Error('Missing required file data or metadata');
         }
         
-        if (!metadata) {
-          throw new Error('Missing file metadata');
-        }
-        
-        if (!size || size <= 0) {
-          size = fileBuffer.length; // Use buffer length as fallback
-        }
+        size = size || fileBuffer.length;
         
         // Process the upload
         const result = await fileController.uploadFile(
@@ -206,14 +176,13 @@ export const fileRoute = (app: any) => {
           fileBuffer,
           metadata,
           size,
-          path || '/',
+          path
         );
-        
-        console.log('Upload result:', result);
         
         return result;
       } catch (error) {
         console.error('Error uploading file:', error);
+        throw error; // Re-throw to let error handler deal with it
       }
     })
 
@@ -261,7 +230,6 @@ export const fileRoute = (app: any) => {
           });
         }
         
-        // Return the stream directly
         return stream;
       } catch (error) {
         console.error('Error downloading file:', error);
@@ -324,7 +292,7 @@ export const fileRoute = (app: any) => {
     })
 
     // Restore file from bin
-    .post('/:fileId/restore', async (context: any) => {
+    .put('/:fileId/restore', async (context: any) => {
       try {
         // Verify authentication
         const authError = await verifyAuth(context);
@@ -358,7 +326,7 @@ export const fileRoute = (app: any) => {
     })
 
         // Empty bin
-    .post('/empty-bin', async (context: any) => {
+    .delete('/empty-bin', async (context: any) => {
       try {
         // Verify authentication
         const authError = await verifyAuth(context);

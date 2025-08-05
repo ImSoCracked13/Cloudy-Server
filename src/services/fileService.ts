@@ -96,6 +96,14 @@ export class FileService {
 
       this.logger.info(`Creating file record for "${metadata.name}" in database`);
 
+      // Create file record in database
+      let file = await fileRepository.createFile(fileData);
+      this.logger.info(`Created new file record: ${file.id}`);
+
+      if (!file) {
+        throw new Error('Failed to create file record in database');
+      }
+
       // File Upload Size Limit Check
       if (size > 25 * 1024 * 1024) { // Limit to 25MB
         this.logger.error(`File "${metadata.name}" exceeds size limit (25MB): ${size} bytes`);
@@ -107,14 +115,6 @@ export class FileService {
       if (userStorageUsage + size > 5 * 1024 * 1024 * 1024) { // Limit to 5GB
         this.logger.error(`User storage limit exceeded (5GB): current usage is ${userStorageUsage} bytes`);
         return null;
-      }
-
-      // Create file record in database
-      let file = await fileRepository.createFile(fileData);
-      this.logger.info(`Created new file record: ${file.id}`);
-
-      if (!file) {
-        throw new Error('Failed to create file record in database');
       }
 
       // Update storage usage
@@ -134,7 +134,7 @@ export class FileService {
    * Preview a file
    */
   async previewFile(fileId: string, userId: string): Promise<FilePreviewResult> {
-    
+
     // Force a fresh fetch from the database to ensure we have the latest file data
     await this.cacheHandler.deleteFromCache(`file:${fileId}`);
     
@@ -219,7 +219,7 @@ export class FileService {
         throw new Error('File not found');
     }
     
-      this.logger.debug(`Found file for download: ${file.objectName} (ID: ${fileId})`);
+    this.logger.debug(`Found file for download: ${file.objectName} (ID: ${fileId})`);
     
     // Check ownership
     if (file.ownerId !== userId) {

@@ -17,7 +17,7 @@ export async function invalidateOwnerCache(ownerId: string, location?: FileLocat
       normalizedLocation = location.toLowerCase();
     }
     
-    // Get all cache keys for this owner
+    // Get all cache keys for owner
     const pattern = normalizedLocation 
       ? `files:${ownerId}:${normalizedLocation}:*` 
       : `files:${ownerId}:*`;

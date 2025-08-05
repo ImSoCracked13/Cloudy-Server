@@ -95,10 +95,6 @@ export const userRoute = (app: any) => {
     // Login
     .post('/login', async ({ body }: { body: any, set: any }) => {
       try {
-        // Extract and validate login credentials
-        if (!body || typeof body !== 'object') {
-          throw new Error('Invalid request body');
-        }
 
         const { loginIdentifier, password } = body;
         
@@ -109,10 +105,6 @@ export const userRoute = (app: any) => {
         // Clean and validate the input
         const cleanIdentifier = String(loginIdentifier).trim();
         const cleanPassword = String(password).trim();
-
-        if (!cleanIdentifier || !cleanPassword) {
-          throw new Error('Login identifier and password cannot be empty');
-        }
         
         // Call the controller with the appropriate identifier
         const result = await userController.login(cleanIdentifier, cleanPassword);
@@ -120,11 +112,6 @@ export const userRoute = (app: any) => {
         // Double-check we have a valid result object
         if (!result) {
           throw new Error('Login controller returned null/undefined result');
-        }
-        
-        // Ensure the result object has required properties
-        if (typeof result !== 'object') {
-          throw new Error('Login controller returned non-object result');
         }
         
         // Log the response
@@ -179,12 +166,9 @@ export const userRoute = (app: any) => {
           }
         }
         
-        await userController.logout(token);
-        
-        return {
-          success: true,
-          message: 'Logged out successfully'
-        };
+        const result = await userController.logout(token);
+        return result;
+
       } catch (error) {
         console.error('Logout route error:', error);
       }
@@ -208,7 +192,8 @@ export const userRoute = (app: any) => {
     
     // Send verification email
     .post('/send-verification', async ({ body }: { body: any }) => {
-      return await userController.sendVerificationEmail((body as any).email);
+      const result = await userController.sendVerificationEmail((body as any).email);
+      return result;
     })
     
     // Delete account

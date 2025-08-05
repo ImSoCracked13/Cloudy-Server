@@ -159,7 +159,7 @@ export class UserService {
     
     // If there is Google account with the same email, throw an error
     if (user.authProvider === 'google' && user.email === normalizedInput) {
-      this.logger.warn(`Login failed: Google account ${normalizedInput} attempted password login`);
+      this.logger.warn(`This is a Google account, please login with Google`);
       return null;
     }
     
