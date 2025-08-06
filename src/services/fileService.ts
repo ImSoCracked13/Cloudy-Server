@@ -32,6 +32,21 @@ export class FileService {
     path: string = '/'
   ): Promise<File> {
     try {
+
+      const fileRepository = repositoryProvider.getFileRepository();
+      // File Upload Size Limit Check
+      if (size > 25 * 1024 * 1024) { // Limit to 25MB
+        this.logger.error(`File "${metadata.name}" exceeds size limit (25MB): ${size} bytes`);
+        return null;
+      }
+
+      // Usage limit exceeded check passing 5GB
+      const userStorageUsage = await fileRepository.calculateStorageUsed(ownerId);
+      if (userStorageUsage + size > 5 * 1024 * 1024 * 1024) { // Limit to 5GB
+        this.logger.error(`User storage limit exceeded (5GB): current usage is ${userStorageUsage} bytes`);
+        return null;
+      }
+
       // Normalize path
       let normalizedPath = path;
       if (!normalizedPath.startsWith('/')) {
@@ -40,9 +55,8 @@ export class FileService {
       if (normalizedPath === '') {
         normalizedPath = '/';
       }
-    
+      
       // Check for filename conflicts
-      const fileRepository = repositoryProvider.getFileRepository();
       const existingFile = await fileRepository.findByNameAndPath(ownerId, metadata.name, normalizedPath, 'Drive');
       
       if (existingFile) {
@@ -102,19 +116,6 @@ export class FileService {
 
       if (!file) {
         throw new Error('Failed to create file record in database');
-      }
-
-      // File Upload Size Limit Check
-      if (size > 25 * 1024 * 1024) { // Limit to 25MB
-        this.logger.error(`File "${metadata.name}" exceeds size limit (25MB): ${size} bytes`);
-        return null;
-      }
-
-      // Usage limit exceeded check passing 5GB
-      const userStorageUsage = await fileRepository.calculateStorageUsed(ownerId);
-      if (userStorageUsage + size > 5 * 1024 * 1024 * 1024) { // Limit to 5GB
-        this.logger.error(`User storage limit exceeded (5GB): current usage is ${userStorageUsage} bytes`);
-        return null;
       }
 
       // Update storage usage
